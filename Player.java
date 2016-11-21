@@ -7,6 +7,8 @@ public class Player {
 		Captain,
 		Contessa
 	}
+	// How do we see our adversary's probabilities? Maybe we can just have 
+	// it as a function argument to the getTarget and Block/Call fxns. 
 	private Roles[] cards;
 	private int numCoins;
 	private double[] actions;
@@ -28,6 +30,33 @@ public class Player {
 	}
 	public double[] actions() {
 		return this.actions;
+	}
+	public void income() {
+		this.numCoins++;
+	}
+	public void foreignAid(boolean blocked) {
+		if (!blocked) {
+			this.numCoins += 2;
+		}
+	}
+	public void Duke() {
+		//System.out.println("I gained 3 coins!");
+		this.numCoins += 3;
+	}
+	public void Assassin() {
+		this.numCoins -= 3;
+
+	}
+	public void Captain() {
+		this.numCoins+=2;
+	}
+	public void Robbed() {
+		this.numCoins -= 2;
+	}
+	
+	public int Coup(int target) {
+		this.numCoins -= 7;
+		return target;
 	}
 	public boolean hasDuke() {
 		return this.cards[0] == Roles.Duke || this.cards[1] == Roles.Duke;
@@ -84,7 +113,7 @@ public class Player {
 		}
 		return probs;
 	}
-	public int chooseAction() {
+	public String chooseAction() {
 		double rand = Math.random();
 		int index = -1;
 		while (rand > 0) {
@@ -92,8 +121,95 @@ public class Player {
 			rand -= this.actions[index];
 		}
 		this.countAct[index]++;
-		return index;
+		switch(index) {
+		case 0: return "Duke";
+		case 1: return "Assassin";
+		case 2: return "Ambassador";
+		case 3: return "Captain";
+		case 4: return "Income";
+		case 5: return "ForeignAid";
+		case 6: return "Coup";
+		}
+		return "";
 	}
+	/** Okay, so if the action is Assassin, then we want to choose the 
+	 * opponent with the lowest probability of Contessa. 
+	 * If it's Captain, then we want to choose the opponent with the lowest 
+	 * combined probability of Ambassador + Captain.
+	 * And if the action is coup, choose anyone with 2 cards and fewer than
+	 * 7 coins, otherwise pick 1 card with max coins. 
+	*/
+	public int chooseTarget(Adversary[] opponents, String action) {
+		int target = 0;
+		double minProb = 1;
+		if (action.compareTo("Assassin") == 0) {
+			for (int i = 0; i < opponents.length; i++) {
+				Adversary op = opponents[i];
+				if (op.getProbs()[4] < minProb) {
+					target = i;
+				}
+			}
+			return target;
+		}
+		else if (action.compareTo("Captain") == 0) {
+			minProb = 2;
+			for (int i = 0; i < opponents.length; i++) {
+				Adversary op = opponents[i];
+				if (op.getProbs()[2] + op.getProbs()[3] < minProb) {
+					target = i;
+				}
+			}
+			return target;
+		}
+		else if (action.compareTo("Coup") == 0) {
+			int maxCoins = 0;
+			boolean doubleLives = false;
+			for (int i = 0; i < opponents.length; i++) {
+				Adversary op = opponents[i];
+				if (op.numLives() == 2 && op.getCoins() > maxCoins) {
+					doubleLives = true;
+					target = i;
+				}
+				else if (!doubleLives && op.numLives() == 2) {
+					doubleLives = true;
+					maxCoins = op.getCoins();
+					target = i;
+				}
+				else if (!doubleLives && op.getCoins() > maxCoins) {
+					maxCoins = op.getCoins();
+					target = i;
+				}
+			}
+			return target;
+		}
+		else {
+			return -1; // No Target for this action. 
+		}
+	}
+	// This one, we need probabilities of 1, plus cutoffs by action. 
+	public boolean call(Adversary op, String action) {
+		switch(action)
+		{
+		case "Duke": {
+			if (op.getProbs()[0] < 0.3) { return true; }
+			break;
+		}
+		case "Assassin":  {
+			if (op.getProbs()[1] < 0.2 || cards[1] == null && !blockKilling()) { return true; }
+		}
+		case "Ambassador": {
+			if (op.getProbs()[2] < 0.35) { return true; }
+		}
+		case "Captain":  {
+			if (op.getProbs()[3] < 0.3) { return true; }
+		}
+		case "Contessa": {
+			if (op.getProbs()[4] < 0.25) { return true; }
+		}
+		}
+		return false;
+	}
+	
 	public void loseLife() {
 		if (this.cards[1] == null) {
 			System.out.println();
