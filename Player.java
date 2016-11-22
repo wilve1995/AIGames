@@ -58,6 +58,58 @@ public class Player {
 		this.numCoins -= 7;
 		return target;
 	}
+	// Ambassador's the tricky one, since we've gotta both re-select cards, and
+	// reconfigure our probabilities of what to choose.
+	public void Ambassador(String card1, String card2) {
+		// Selection will depend on info later. For now, just random selection.
+		Roles r1 = Roles.valueOf(card1);
+		Roles r2 = Roles.valueOf(card2);
+		if (this.cards[1] != null) {
+			int twoSelect = (int)(6*Math.random());
+			switch(twoSelect) {
+			case 0: {
+				break; // Keep the 2 original roles. 
+			}
+			case 1: {
+				this.cards[0] = r1;
+				break;
+			}
+			case 2: {
+				this.cards[0] = r2;
+				break;
+			}
+			case 3: {
+				this.cards[1] = r1;
+				break;
+			}
+			case 4: {
+				this.cards[1] = r2;
+				break;
+			}
+			case 5:
+				this.cards[0] = r1;
+				this.cards[1] = r2;
+				break;
+			}
+		}
+		else {// Only 1 card to be chosen
+			int oneSelect = (int)(3*Math.random());
+			switch(oneSelect) {
+			case 0: {
+				break; // Keep the original card. 
+			}
+			case 1: {
+				this.cards[0] = r1;
+				break;
+			}
+			case 2: {
+				this.cards[0] = r2;
+				break;
+			}
+			}
+		}
+	}
+	
 	public boolean hasDuke() {
 		return this.cards[0] == Roles.Duke || this.cards[1] == Roles.Duke;
 	}

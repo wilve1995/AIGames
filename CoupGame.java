@@ -8,6 +8,7 @@ public class CoupGame {
     	 // Run the game, and get input as it comes
     	 playGame(3);
      }
+     
      public static void playGame(int numPlayers) {   	 
     	 Player me = new Player(Player.Roles.Duke, Player.Roles.Captain); // Change these manually for now
     	 Adversary[] opponents = new Adversary[numPlayers];
@@ -159,27 +160,43 @@ public class CoupGame {
     		 }
     		 if (turn == -1) {
     			 String move = me.chooseAction();
-    			 // After my action is chosen, what other info do we need?
+    			 /** After my action is chosen, what other info do we need?
     			 // We still need the blocked/called, and uh... depending on
     			 // What action was called, we need a target (determined)
     			 // by the AI. We also need a blocked/called response from 
     			 // the player, and then an AI response to a block. 
     			 // Whoever loses the life also needs to be input. 
     			 // And if the adversary loses a life, then we need to know
-    			 // what it was that was lost. 
+    			 // what it was that was lost. Well... we actually... we won't
+    			 // know for sure who lost a life until we determine the AI's
+    			 // call / don't call response, so let's um... get those at the
+    			 // end of this game method */ 
     			 String counter = s.nextLine();
     			 boolean blocked = false;
-    			 if (counter.compareTo("blocked") == 0) {
-    				 blocked = true;
-    			 }
+    			 if (counter.compareTo("blocked") == 0) { blocked = true; }
     			 boolean called = false;
     			 if (counter.compareTo("called") == 0) { called = true; }
-    			 int lostPlayer = s.nextInt(); // Index of player losing a life
-    			 int lostLife = s.nextInt();
     			 int target = me.chooseTarget(opponents, move);
     			 boolean calling = false;
     			 if (target >= 0) {
     				 calling = me.call(opponents[target], move);
+    			 }
+    			 if (calling || called) {
+    				 int lostPlayer = s.nextInt(); // Index of player losing a life
+        			 if (lostPlayer == -1) {
+        				 success = false;
+        			 }
+    				 int lostLife = s.nextInt();
+        			 if (opponents[lostPlayer].numLives() == 1) {
+        				 elimination = true;
+        			 }
+        			 if (elimination) {
+        				// Move the dead guy to the end, nullify. 
+        				 // Reduce the number of players in the game by 1.
+        				 opponents[lostLife] = opponents[lastLiving];
+        				 opponents[lastLiving] = null;
+        				 lastLiving--;  				 
+        			 }
     			 }
     			 // Now to split up based on actions. Once we've done this, 
     			 // we can start testing the program as a whole!
@@ -189,35 +206,69 @@ public class CoupGame {
     				 break;
     			 }
     			 case "Foreign Aid": { 
-    				 if (called) {
-    					 if (calling) {
-    						 
-    					 }
+    				 if (calling && success) {
+    					 me.foreignAid(success);
     				 }
-    				 me.foreignAid(blocked);
+    				 else {
+    					 me.foreignAid(blocked);
+    				 }
     				 break;
     			 }
     			 case "Duke": {
-    				 me.Duke();
+    				 if (!called || success) {
+    					 me.Duke();
+    				 }
+    				 break;
     			 }
-    			 
+    			 case "Assassin": {
+    				 me.Assassin();
+    				 if (success && !blocked) {
+    					 int assnated = s.nextInt(); // Grab this only if we have an assassination death.
+    					 opponents[target].processDeath(assnated);
+    				 }
+    				 break;
     			 }
-    			 // Player's turn. 
-    			 if (elimination) {
-    				// Move the dead guy to the end, nullify. 
-    				 // Reduce the number of players in the game by 1.
-    				 opponents[lostLife] = opponents[lastLiving];
-    				 opponents[lastLiving] = null;
-    				 lastLiving--;  				 
+    			 case "Ambassador": {
+    				 String card1 = s.nextLine();
+    				 String card2 = s.nextLine();
+    				 me.Ambassador(card1, card2);
+    				 break;
     			 }
+    			 case "Captain": {
+    				 if (success && !blocked) {
+    					 me.Captain();
+    					 opponents[target].Robbed();
+    				 }
+    				 break;
+    			 }
+    			 case "Coup": {
+    				 me.Coup(target);
+    				 int couped = s.nextInt();
+    				 elimination = opponents[target].processDeath(couped);
+    				 break;
+    			 }
+    			 }
+
     		 }
 
     		 turn++;
+    		 printGame(me, opponents);
     		 if (turn > lastLiving) {
     			 turn = -1; // reset to the beginning: -1 for Player
     		 }
     		 //Cycle through Players and adversary. 
     		 //Collect input and use that to determine what happens. 
+    	 }
+     }
+     public static void printGame(Player ai, Adversary[] enemies) {
+    	 System.out.println("CoupAI has roles " + ai.getCards()[0] + " and " +
+    			 ai.getCards()[1] + " and " + ai.getCoins() + " coins.");
+    	 for (int i = 0; i < enemies.length; i++) {
+    		 Adversary p = enemies[i];
+    		 if (p != null) {
+    			 System.out.println("Adversary " + i + " has " + p.numLives() +
+    					 " and " + p.getCoins() + " coins.");
+    		 }
     	 }
      }
 }
